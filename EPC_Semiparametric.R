@@ -1,5 +1,5 @@
 
-#install.packages: dfphase1
+#install.packages: dfphase1,gdata,moments
 
 # Read the raw data
 dt = read.csv("uci-secom.csv", header = F)
@@ -11,7 +11,7 @@ dt = read.csv("uci-secom.csv", header = F)
 prepro = function(x){
   #filters out the missing values
   xfull = x[!is.na(x)]
-  xtrim=Trim(xfull, trim = 0.01)
+  xtrim=trim(xfull, trim = 0.01)
   xfinal = xtrim
   return(xfinal)
 }
@@ -32,8 +32,26 @@ skewness=round(skewness(x),2)
 kurtosis=round(kurtosis(x),2)
 moments <- c(mean,stdev,skewness,kurtosis);moments
 
+# semiparametric approach: Adaptive Pn
+Pn_Mom=function(n){
+  if (n>1850) {0.9
+  } else if (n>1110) {0.8
+  } else if (n>370) {0.6
+  } else {0.3}
+}
+
+Pn_Pick=function(n){
+  if (n>1110) {0.9
+  } else if (n>740) {0.8
+  } else if (n>370) {0.6
+  } else {0.3}
+}
+
+Set.Confid_mom=Pn_Mom(n)
+Set.Confid_pick=Pn_Pick(n)
+
 ### Pickands
-Pickands = function(x, pn = 0.9, alpha = 0.0027){
+Pickands = function(x, pn = Set.Confid_pick, alpha = 0.0027){
     #  calculate tail index  Pickands (1975) 
   x=unique(x)
   Rx=sort(x)
@@ -239,7 +257,7 @@ Pickands = function(x, pn = 0.9, alpha = 0.0027){
 }
 
 ### Moment
-Moment = function(x, pn = 0.9, alpha = 0.0027){
+Moment = function(x, pn = Set.Confid_mom, alpha = 0.0027){
   
   Rx=sort(x)
   n=length(Rx)
