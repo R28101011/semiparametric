@@ -34,14 +34,14 @@ moments <- c(mean,stdev,skewness,kurtosis);moments
 
 # semiparametric approach: Adaptive Pn
 Pn_Mom=function(n){
-  if (n>1850) {0.9
-  } else if (n>1110) {0.8
+  if (n>1851) {0.9
+  } else if (n>1111) {0.8
   } else if (n>370) {0.6
   } else {0.3}
 }
 
 Pn_Pick=function(n){
-  if (n>1110) {0.9
+  if (n>1111) {0.9
   } else if (n>740) {0.8
   } else if (n>370) {0.6
   } else {0.3}
