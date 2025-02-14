@@ -3,7 +3,7 @@ if (!requireNamespace("DescTools", quietly = TRUE)) install.packages("DescTools"
 library(DescTools)
 
 # Read the raw data
-dt <- read.csv(file_path, header = FALSE)
+dt = read.csv("uci-secom.csv", header = F)
 
 # Data Description:
 # - The dataset contains 591 variables.
