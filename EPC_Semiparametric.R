@@ -1,19 +1,29 @@
-
-#install.packages: dfphase1,gdata,moments
+# Load necessary packages efficiently
+if (!requireNamespace("DescTools", quietly = TRUE)) install.packages("DescTools")
+library(DescTools)
 
 # Read the raw data
-dt = read.csv("uci-secom.csv", header = F)
+dt <- read.csv(file_path, header = FALSE)
 
-# There are 591 variables in the dataset.
-# In the CSV file, the first column represents time stamps, 
-# and the subsequent columns represent the quality characteristics.
+# Data Description:
+# - The dataset contains 591 variables.
+# - The first column represents time stamps.
+# - The subsequent columns represent quality characteristics.
 
-prepro = function(x){
-  #filters out the missing values
-  xfull = x[!is.na(x)]
-  xtrim=trim(xfull, trim = 0.01)
-  xfinal = xtrim
-  return(xfinal)
+# Data Preprocessing Function
+prepro <- function(x) {
+  # Remove missing values
+  x_clean <- x[!is.na(x)]
+  
+  # Apply trimming if DescTools is available
+  if ("Trim" %in% ls("package:DescTools")) {
+    x_trimmed <- Trim(x_clean, trim = 0.01)
+  } else {
+    warning("Trim() function is not available. Using untrimmed data.")
+    x_trimmed <- x_clean
+  }
+  
+  return(x_trimmed)
 }
 
 # The 2nd, 25th, 158th and 190th variables are selected and 
@@ -25,34 +35,45 @@ x = x1 = prepro(dt$V2);x=x[1:61]
 # x= x4 = prepro(dt$V190);x=x[1:1536]
 
 variable="X1"
-n=length(x)
-mean=round(mean(x),2)
-stdev=round(sd(x),2)
-skewness=round(skewness(x),2)
-kurtosis=round(kurtosis(x),2)
-moments <- c(mean,stdev,skewness,kurtosis);moments
 
-# semiparametric approach: Adaptive Pn
-Pn_Mom=function(n){
-  if (n>1851) {0.9
-  } else if (n>1111) {0.8
-  } else if (n>370) {0.6
-  } else {0.3}
+# Compute basic statistics
+n <- length(x)
+moments <- c(
+  mean = round(mean(x), 2),
+  stdev = round(sd(x), 2),
+  skewness = round(skewness(x), 2),
+  kurtosis = round(kurtosis(x), 2)
+)
+
+# Display computed moments
+print(moments)
+
+# Adaptive Pn selection function
+Pn_Mom <- function(n) {
+  ifelse(n > 1850, 0.9,
+         ifelse(n > 1110, 0.8,
+                ifelse(n > 370, 0.6, 0.3)))
 }
 
-Pn_Pick=function(n){
-  if (n>1111) {0.9
-  } else if (n>740) {0.8
-  } else if (n>370) {0.6
-  } else {0.3}
+Pn_Pick <- function(n) {
+  ifelse(n > 1110, 0.9,
+         ifelse(n > 740, 0.8,
+                ifelse(n > 370, 0.6, 0.3)))
 }
 
-Set.Confid_mom=Pn_Mom(n)
-Set.Confid_pick=Pn_Pick(n)
+# Compute confidence levels
+Set.Confid_mom <- Pn_Mom(n)
+Set.Confid_pick <- Pn_Pick(n)
+
+# Display confidence levels
+cat("Adaptive Confidence Levels:\n")
+cat("  - Pn_Mom: ", Set.Confid_mom, "\n")
+cat("  - Pn_Pick: ", Set.Confid_pick, "\n")
+
 
 ### Pickands
 Pickands = function(x, pn = Set.Confid_pick, alpha = 0.0027){
-    #  calculate tail index  Pickands (1975) 
+  #  calculate tail index  Pickands (1975) 
   x=unique(x)
   Rx=sort(x)
   n=length(x)
@@ -123,7 +144,7 @@ Pickands = function(x, pn = Set.Confid_pick, alpha = 0.0027){
     if(length(SLC)<=1 | length(SLC)==rnk) {SLC[rnk+1]=floor(n/4)} else {SLC[rnk+1]}}
   
   r.p.final=r.p(m);r.p.final.u=r.p.final
-
+  
   
   #==== Step 5 : Exceed. Prob. UCL ===============================================
   
@@ -131,10 +152,10 @@ Pickands = function(x, pn = Set.Confid_pick, alpha = 0.0027){
     (2^(2*r+1))*(r^2)/(2^r-1)^2
   }
   
-
+  
   z=qnorm((1+pn)/2)
   m=max(floor(n*alpha/2),1)
- 
+  
   UCL=Rx[n-m+1]+z*(Rx[n-m+1]-Rx[n-2*m+1])*(var.x(r.p.final)/(2*m))^0.5 # Theorem 3.1
   
   r_upper=r.p.final
@@ -222,7 +243,7 @@ Pickands = function(x, pn = Set.Confid_pick, alpha = 0.0027){
   SLC=s.level.scale+1
   SLC=unique(SLC)
   rnk=which(SLC==m)
-
+  
   if(is.null(s.level.scale)){SLC[rnk+1]=floor(n/4)
   } else {
     if(length(SLC)<=1 | length(SLC)==rnk) {SLC[rnk+1]=floor(n/4)} else {SLC[rnk+1]}}
@@ -253,7 +274,7 @@ Pickands = function(x, pn = Set.Confid_pick, alpha = 0.0027){
   ooc.Pickands.p=round(100*ooc.Pickands/length(x),2)
   
   
-  return(list(UCL = UCL, LCL = LCL, Band.Pickands = Band.Pickands))
+  return(list(Tail_Index_Upper=r_upper,Tail_Index_Lower=r_lower, UCL = UCL, LCL = LCL, Band.Pickands = Band.Pickands))
 }
 
 ### Moment
@@ -356,7 +377,7 @@ Moment = function(x, pn = Set.Confid_mom, alpha = 0.0027){
   
   rm1=function(k){rm[k]}
   
-
+  
   
   # HJ revised below ###########
   rmx=r.m(m)
@@ -480,7 +501,7 @@ Moment = function(x, pn = Set.Confid_mom, alpha = 0.0027){
   
   rm1=function(k){rm[k]}
   
- 
+  
   rmx=r.m(m)
   rmx=if(is.na(rmx)){rm[m]} else rmx
   
@@ -489,7 +510,7 @@ Moment = function(x, pn = Set.Confid_mom, alpha = 0.0027){
   
   #rsp(rm,alpha = 0.1, plot=TRUE)
   
-
+  
   z=qnorm((1+pn)/2)
   m=max(floor(n*alpha/2),1)
   m0=floor(n*alpha/2)
@@ -515,16 +536,20 @@ Moment = function(x, pn = Set.Confid_mom, alpha = 0.0027){
   ooc.Moment.p=round(100*ooc.Moment/length(x),2) 
   
   
-  return(list(UCL = UCL, LCL = LCL, Band.Moment = Band.Moment))
+  return(list(Tail_Index_Upper=r_upper,Tail_Index_Lower=r_lower,UCL = UCL, LCL = LCL, Band.Moment = Band.Moment))
 }
 
 # output
 UCL.Pickands=Pickands(x)$UCL
 LCL.Pickands=Pickands(x)$LCL
+Tail_Index_Upper_Pickands <- Pickands(x)$Tail_Index_Upper
+Tail_Index_Lower_Pickands <- Pickands(x)$Tail_Index_Lower
 Band.Pickands=Pickands(x)$Band.Pickands
 UCL.Moment=Moment(x)$UCL
 LCL.Moment=Moment(x)$LCL
 Band.Moment=Moment(x)$Band.Moment
+Tail_Index_Upper_Moment <- Moment(x)$Tail_Index_Upper
+Tail_Index_Lower_Moment <- Moment(x)$Tail_Index_Lower
 
 # =========== semi SPC charts =====================================
 
@@ -555,5 +580,23 @@ legend(x = "topright", legend = c("Pickands", "Moment"),
        lty = c(2,3), cex = 1.2, box.lty = 1,lwd=c(3,3))
 
 
-result=rbind(variable,LCL.Pickands,UCL.Pickands,Band.Pickands,LCL.Moment,UCL.Moment,Band.Moment)
-write.csv(result,"result.csv")
+
+# ================= Output =================
+
+result <- data.frame(
+  Variable = variable, 
+  SampleSize = n, 
+  Pn_Pickands = Set.Confid_pick, 
+  Pn_Moment = Set.Confid_mom, 
+  LCL_Pickands = LCL.Pickands, 
+  UCL_Pickands = UCL.Pickands, 
+  Band_Pickands = Band.Pickands,
+  LCL_Moment = LCL.Moment, 
+  UCL_Moment = UCL.Moment, 
+  Band_Moment = Band.Moment,
+  Tail_Index_Lower_Pickands = Tail_Index_Lower_Pickands,
+  Tail_Index_Lower_Moment = Tail_Index_Lower_Moment,
+  Tail_Index_Upper_Pickands = Tail_Index_Upper_Pickands,
+  Tail_Index_Upper_Moment = Tail_Index_Upper_Moment
+)
+result
