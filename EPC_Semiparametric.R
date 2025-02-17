@@ -1,6 +1,13 @@
 # Load necessary packages efficiently
-if (!requireNamespace("DescTools", quietly = TRUE)) install.packages("DescTools")
+packageName <- c("DescTools", "e1071","dfphase1")
+for (i in 1:length(packageName)) {
+  if (!(packageName[i] %in% rownames(installed.packages()))) {
+    install.packages(packageName[i])
+  }
+}
 library(DescTools)
+library(e1071)
+library(dfphase1)
 
 # Read the raw data
 dt = read.csv("uci-secom.csv", header = F)
